@@ -1,0 +1,55 @@
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 62.5%;
+    background-color: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-size: 1.8rem;
+}
+
+body {
+    background-color: white;
+}
+
+main {
+    height: 100vh;
+}
+
+button, textarea {
+    border-radius: 0.7rem;
+}
+
+button {
+    background: none;
+    border: 0.2rem solid #333;
+    padding: 0.7rem 1.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+textarea {
+    padding: 3rem;
+    font-size: 1.6rem;
+}
+
+button:hover {
+    background-color: black;
+    color: white;
+}
+
+table {
+    font-size: 1.6rem;
+    width: 90%;
+}
+
+td, th {
+    border: 1px solid #333;
+    padding: 0.5rem;
+}
+
