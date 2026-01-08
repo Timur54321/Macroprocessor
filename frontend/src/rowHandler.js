@@ -6,6 +6,7 @@ export class RowHandler {
     handle(line, macroBase, inMacroDef, directiveHandler, globalStorage) {
         if (directiveHandler.isDirective(line[0]) && !inMacroDef) {
             directiveHandler.handle(line, globalStorage);
+            return 1;
         }
         
         if (line[1] == "MACRO") {
@@ -40,6 +41,8 @@ export class RowHandler {
             }
 
             macroBase.addMacro();
+            let output = macroBase.checkPossibleMacroCalls();
+            console.log(output);
             return "MACRO ENDED";
         }
 
@@ -56,8 +59,15 @@ export class RowHandler {
         }
 
         if (macroBase.hasThisMacro(line[0])) {
-            let outputCode = macroBase.callMacro(line[0], line.slice(1), globalStorage, directiveHandler);
-            console.log(outputCode);
+            let superStorage = [];
+            
+            let outputCode = macroBase.callMacro(line[0], line.slice(1), globalStorage, directiveHandler, superStorage);
+            console.log(outputCode);   
+            return outputCode;
+        }
+
+        if (line[0] && line[1]) {
+            macroBase.addPossibleMacroCall(line[0], line.slice(1), globalStorage, directiveHandler, []);
         }
     }
 }

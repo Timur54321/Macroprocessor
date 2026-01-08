@@ -5,19 +5,19 @@ export class DirectiveHandler {
         this.directives = ["VAR", "INC", "ADD"];
     }
 
-    handle(line, globalStorage, locStorage = new Map()) {
+    handle(line, globalStorage, storageStack = []) {
         let currentDirective = line[0];
 
         let result = -1;
         switch(currentDirective) {
             case "VAR":
-                result = this.handleVar(line, globalStorage);
+                result = this.handleVar(line, globalStorage, storageStack[storageStack.length - 1]);
                 break;
             case "INC":
-                result = this.handleInc(line, globalStorage, locStorage);
+                result = this.handleInc(line, globalStorage, storageStack);
                 break;
             case "ADD":
-                result = this.handleAdd(line, globalStorage, locStorage);
+                result = this.handleAdd(line, globalStorage, storageStack);
                 break;
             default:
                 break;
@@ -30,7 +30,8 @@ export class DirectiveHandler {
         return result;
     }
 
-    handleVar(line, storage) {
+    handleVar(line, storage, localStorage) {
+        let ourStorage = localStorage ? localStorage : storage;
         if (!isValidMetkaName(line[1])) {
             handleError(`Некорректно задано имя метки ${line[1]}`);
             return -1;
@@ -41,45 +42,72 @@ export class DirectiveHandler {
             return -1;
         }
 
-        storage.set(line[1], parseInt(line[2]));
+        ourStorage.set(line[1], parseInt(line[2]));
         return "";
     }
 
-    handleInc(line, glStorage, locStorage) {
-        
+    handleInc(line, glStorage, storageStack) {
+        let valueWasSetForLocalStorage = false;
+
         if (!isValidMetkaName(line[1])) {
             handleError(`Некорректно задано имя переменной ${line[1]}`);
             return -1;
         }
 
-        if (locStorage.has(line[1])) {
-            let newValue = locStorage.get(line[1]) + 1;
-            locStorage.set(line[1], newValue);
+        if (storageStack.length > 0) {
+            for (let i = storageStack.length-1; i >= 0; i--) {
+                let currentStorage = storageStack[i];
+                if (currentStorage.has(line[1])) {
+                    let newValue = currentStorage.get(line[1]) + 1;
+                    storageStack[i].set(line[1], newValue);
+                    valueWasSetForLocalStorage = true;
+                    break;
+                }
+            }
         }
-        else if(glStorage.has(line[1])) {
-            let currentValue = glStorage.get(line[1]);
-            glStorage.set(line[1], currentValue+1);
-        }
-        else {
-            handleError(`Переменная ${line[1]} не была объявлена в текущей области видимости`);
-            return -1;
+
+        if (!valueWasSetForLocalStorage)
+        {
+            if(glStorage.has(line[1])) {
+                let currentValue = glStorage.get(line[1]);
+                glStorage.set(line[1], currentValue+1);
+            }
+            else {
+                handleError(`Переменная ${line[1]} не была объявлена в текущей области видимости`);
+                return -1;
+            }
         }
 
         return "";
     }
 
-    handleAdd(line, glStorage, locStorage) {
+    handleAdd(line, glStorage, storageStack) {
+        console.log(storageStack);
         let operands = line.slice(1);
+        let valueWasSetForLocalStorage = false;
         let resultString = "ADD ";
         operands.forEach(el => {
-            if (locStorage.has(el)) {
-                resultString += locStorage.get(el) + " ";
+            valueWasSetForLocalStorage = false;
+            if (storageStack.length > 0) {
+
+                for (let i = storageStack.length - 1; i >= 0; i--) {
+                    let currentStorage = storageStack[i];
+                    
+                    if (currentStorage.has(el)) {
+                        resultString += currentStorage.get(el) + " ";
+                        valueWasSetForLocalStorage = true;
+                        break;
+                    }
+                }
             }
-            else if (glStorage.has(el)) {
-                resultString += glStorage.get(el) + " ";
-            }
-            else {
-                resultString += el + " ";
+            
+            if (!valueWasSetForLocalStorage) {
+                if (glStorage.has(el)) {
+                    resultString += glStorage.get(el) + " ";
+                }
+                else {
+                    resultString += el + " ";
+                }
             }
         });
 

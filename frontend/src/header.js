@@ -5,26 +5,17 @@ export class MacroConfig {
 `
 PROG START 1
 
-VAR a 0
-INC a
-END
+VAR a 4
 
-ADD U I O P I O a  O ERWOI  IEJ
-
-mac MACRO a b= c=3
-INC a
-INC b
-ADD a b
+mac MACRO b
+IF b<2
+ADD 4 5
+ELSE
+ADD 8 9
+ENDIF
 MEND
 
-mac2 MACRO e h
-INC e
-INC h
-ADD e h
-mac 2 b=4 c=5
-MEND
-
-mac2 4 5
+mac 1
 
 END`;
 
