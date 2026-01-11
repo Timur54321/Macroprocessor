@@ -1,4 +1,4 @@
-import { handleError, isIntegerString } from "./utils";
+import { handleError, isIntegerString, isValidMacroMetka } from "./utils";
 
 export class MacroBase {
 
@@ -102,27 +102,142 @@ export class MacroBase {
     }
 
     callMacro(macroName, params, glStorage, directiveHandler, storageStack = []) {
-        
         let currentMacro = this.definedMacros.find(el => el.name == macroName);
         let locStorage = this.isParamsValid(params, currentMacro.params, glStorage, storageStack);
         storageStack.push(locStorage);
         let gotError = false;
         let directiveStack = [];
 
+        // for if/while directives
+        let skipIfCounter = 0, skipWhileCounter = 0;
         let currentlySkipping = false;
-        let skippingIfBlock = false,
-            skippingElseBlock = false;
+
+        // for aif/ago
+        let lookingForMetka = undefined;
+        let previousValue = undefined;
+        let relativeNamespace = 0;
 
         if (locStorage == -1) {
             return -1;
         }
         let outputString = "";
         
-        currentMacro.body.forEach(line => {
-            if (gotError) return;
+        for (let i = 0; i < currentMacro.body.length; i++) {
+            let line = currentMacro.body[i].filter(el => el != "");
+            if (line.length == 0) continue;
 
-            if (line[0] == "ELSE") {
+            if (gotError) continue;
+
+            if (line[0] == "AGO") {
+                if (currentlySkipping) continue;
+                if(!isValidMacroMetka(line[1])) {
+                    handleError(`Некорректно задана макрометка ${line[1]}`);
+                    return -1;
+                }
+
+                lookingForMetka = line[1];
+                continue;
+            }
+
+            if (line[0] == lookingForMetka) {
+                lookingForMetka = false;
+                outputString += "I GOT THIS" + "\n";
+            }
+
+            if (line[0] == "WHILE") {
+                
+                if (lookingForMetka) {
+                    if (!previousValue) {
+                        relativeNamespace++;
+                        previousValue = "WHILE";
+                        continue;
+                    }
+                }
+
+                if(currentlySkipping) {
+                    skipWhileCounter++;
+                    continue;
+                }
+
+                if (!line[1] || line[2]) {
+                    handleError(`Некорректная запись директивы WHILE ${line}`);
+                    return -1;
+                }
+
+                let currentConditionResult = this.checkCondition(line[1], glStorage, storageStack);
+                if (currentConditionResult == -1) return -1;
+
+                directiveStack.push({
+                    name: "WHILE",
+                    conditionLine: line[1],
+                    condition: currentConditionResult,
+                    index: i,
+                    times: 0
+                });
+
+                if (!currentConditionResult) {
+                    currentlySkipping = true;
+                }
+            }
+
+            if (line[0] == "ENDW") {
+                if (lookingForMetka) {
+                    if (previousValue == "WHILE" && relativeNamespace != 0) {
+                        previousValue = undefined;
+                        relativeNamespace--;
+                        continue;
+                    }
+
+                    if (relativeNamespace == 0 && !previousValue) {
+                        console.log("this should've happened");
+                        directiveStack.pop();
+                        continue;
+                    }
+                    continue;
+                }
+                
+                if (currentlySkipping && skipWhileCounter != 0) {
+                    skipWhileCounter--;
+                    continue;
+                }
+
+                if (currentlySkipping) {
+                    currentlySkipping = false;
+                    directiveStack.pop();
+                    continue;
+                }
+
+                let directiveInfo = directiveStack.at(-1);
+                let repeatCondition = this.checkCondition(directiveInfo.conditionLine, glStorage, storageStack);
+                if (repeatCondition == -1) return -1;
+
+                if (repeatCondition) {
+                    if (directiveInfo.times > 10) {
+                        handleError("Вполне вероятно произошло зацикливание лолчанский");
+                        return -1;
+                    }
+                    directiveStack.at(-1).times = directiveInfo.times+1;
+                    i = directiveInfo.index;
+                    continue;
+                } else {
+                    directiveStack.pop();
+                    continue;
+                }
+            }
+
+            if (line[0] == "ELSE" && skipIfCounter == 0) {
+
+                if (lookingForMetka) {
+                    if (relativeNamespace != 0) continue;
+                    else {
+                        relativeNamespace++;
+                        previousValue = "ELSE";
+                        continue;
+                    }
+                }
+
                 if (!directiveStack.at(-1) || directiveStack.at(-1).name != "IF") {
+                    console.log(directiveStack);
                     handleError("Некорректная запись директив IF,ELSE,ENDIF");
                     gotError = true;
                     return -1;
@@ -130,34 +245,50 @@ export class MacroBase {
 
                 if (directiveStack.at(-1).condition) {
                     currentlySkipping = true;
-                    return;
+                    continue;
                 } else {
                     currentlySkipping = false;
-                    return;
+                    continue;
                 }
             }
 
             if (line[0] == "ENDIF") {
-                currentlySkipping = false;
-                directiveStack.pop();
-                return;
-            }
+                if (lookingForMetka) {
+                    if (previousValue == "IF" && relativeNamespace != 0) {
+                        previousValue = undefined;
+                        relativeNamespace--;
+                        continue;
+                    }
 
-            if (currentlySkipping) {
-                return;
-            }
-
-            if (directiveStack.at(-1)) {
-                let currentDirective = directiveStack.at(-1);
-
-                if (currentDirective.name == "IF") {
-                    if (currentDirective.condition) {
-
+                    if (relativeNamespace == 0 && (!previousValue || previousValue == "ELSE")) {
+                        directiveStack.pop();
+                        continue;
                     }
                 }
+
+                if (currentlySkipping && skipIfCounter != 0) {
+                    skipIfCounter--;
+                    continue;
+                }
+
+                currentlySkipping = false;
+                directiveStack.pop();
+                continue;
             }
 
-            if (line[0].toUpperCase() == "IF") {
+            if (line[0]?.toUpperCase() == "IF") {
+                if (lookingForMetka) {
+                    if (!previousValue) {
+                        previousValue = "IF";
+                        relativeNamespace++;
+                        continue;
+                    }
+                }
+
+                if (currentlySkipping) {
+                    skipIfCounter++;
+                    continue;
+                }
 
                 if (!line[1] || line[2]) {
                     handleError(`Некорректно задано условие для IF`);
@@ -175,13 +306,15 @@ export class MacroBase {
                     condition: currentConditionResult
                 });
 
-                console.log(directiveStack);
-
                 if (!currentConditionResult) {
                     currentlySkipping = true;
                 }
 
-                return;
+                continue;
+            }
+
+            if (currentlySkipping || lookingForMetka) {
+                continue;
             }
 
             if (directiveHandler.isDirective(line[0])) {
@@ -205,9 +338,16 @@ export class MacroBase {
                     this.addPossibleMacroCall(line[0], line.slice(1), glStorage, directiveHandler, storageStack)
                 }
             }
-        });
+        }
 
-        if (gotError) return 1;
+        if (directiveStack.length != 0) {
+            let lastOne = directiveStack.at(-1);
+            console.log(outputString);
+            handleError(`Некорректное использование директивы ${lastOne?.name}`);
+            return -1;
+        }
+
+        if (gotError) return -1;
 
         return outputString;
     }
@@ -283,7 +423,7 @@ export class MacroBase {
         let actualKeyParams = Object.keys(actualParams).filter(el => el != "positionParams");
         actualKeyParams.forEach(el => {
             if (actualParams[el]) {
-                localStorage.set(el, actualParams[el]);
+                localStorage.set(el, parseInt(actualParams[el]));
             }
         });
         

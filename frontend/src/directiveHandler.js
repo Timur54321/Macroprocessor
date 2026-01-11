@@ -82,7 +82,6 @@ export class DirectiveHandler {
     }
 
     handleAdd(line, glStorage, storageStack) {
-        console.log(storageStack);
         let operands = line.slice(1);
         let valueWasSetForLocalStorage = false;
         let resultString = "ADD ";

@@ -9,6 +9,10 @@ export function isValidMetkaName(name) {
     return identifierRegex.test(name);
 }
 
+export function isValidMacroMetka(name) {
+    return name[0] == "%" && isValidMetkaName(name.substring(1));        
+}
+
 export function isIntegerString(str) {
     if (typeof str !== 'string') {
         return false;
