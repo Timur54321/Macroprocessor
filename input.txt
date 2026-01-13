@@ -1,0 +1,23 @@
+mac MACRO a b c=3 d=
+IF a<b
+    WHILE c<d
+        doadds 4
+	INC c
+    ENDW
+    LOADR1 89
+ELSE
+    AIF b>c %T4
+    ADD 1 2
+    %T4 ADD 23 23
+ENDIF
+MEND
+
+mac 1 2 d=4
+
+doadds MACRO limit
+VAR count 0
+WHILE count<limit
+    ADD count limit
+    INC count
+ENDW
+MEND

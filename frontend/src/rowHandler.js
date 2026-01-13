@@ -1,12 +1,20 @@
-import { printNextMacroDefLine } from "./filesManager";
-import { handleError } from "./utils";
+import { printNextMacroDefLine } from "./filesManager.js";
+import { generateHash, handleError, isValidRealMetkaName } from "./utils.js";
 
 export class RowHandler {
     
-    handle(line, macroBase, inMacroDef, directiveHandler, globalStorage) {
+    handle(line, macroBase, inMacroDef, directiveHandler, globalStorage, mode = "") {
         if (directiveHandler.isDirective(line[0]) && !inMacroDef) {
-            directiveHandler.handle(line, globalStorage);
-            return 1;
+            return directiveHandler.handle(line, globalStorage);
+        }
+
+        if (isValidRealMetkaName(line[0]) && !inMacroDef) {
+            if (!directiveHandler.isAssemblyDirective(line[1])) {
+                handleError(`Метка должна находиться перед директивой ассемблера. Проверьте ${line.join(" ")}`);
+                return -1;
+            }
+            
+            return directiveHandler.handle(line, globalStorage);
         }
         
         if (line[1] == "MACRO") {
@@ -30,7 +38,10 @@ export class RowHandler {
             }
 
             macroBase.saveLocalNameAndParams(macroName, params);
-            printNextMacroDefLine(macroName, line.slice(2).join(" "));
+            if (mode != "cli")
+            {
+                printNextMacroDefLine(macroName, line.slice(2).join(" "));
+            }
             return "MACRO STARTED";
         }
 
@@ -42,32 +53,49 @@ export class RowHandler {
 
             macroBase.addMacro();
             let output = macroBase.checkPossibleMacroCalls();
-            console.log(output);
-            return "MACRO ENDED";
+            if (output == -1) {
+                return -1;
+            }
+
+            if (!output) {
+                return {
+                    message: "MACRO ENDED",
+                    output: -1
+                }
+            }
+
+            return {
+                message: "MACRO ENDED",
+                output: output
+            };
         }
 
         if (inMacroDef) {
-            printNextMacroDefLine("", line.join(" "));
+            if (mode != "cli") {
+                printNextMacroDefLine("", line.join(" "));
+            }
             macroBase.pushLineToMacroDef(line);
-            return 1;
+            return;
         }
 
         if (line[0].toUpperCase() == "END") {
             let myMacros = macroBase.getMyMacros();
-            console.log(globalStorage);
-            return 1;
+            return "";
         }
 
         if (macroBase.hasThisMacro(line[0])) {
             let superStorage = [];
             
             let outputCode = macroBase.callMacro(line[0], line.slice(1), globalStorage, directiveHandler, superStorage);
-            console.log(outputCode);   
             return outputCode;
         }
 
-        if (line[0] && line[1]) {
-            macroBase.addPossibleMacroCall(line[0], line.slice(1), globalStorage, directiveHandler, []);
+        if (line[0]) {
+            let uniqueMacroHash = generateHash();
+            macroBase.addPossibleMacroCall(line[0], line.slice(1), globalStorage, directiveHandler, [], uniqueMacroHash);
+            return line.join(" ") + " [MACROHASHCOMING]" + uniqueMacroHash;
         }
+
+        return line.join(" ");
     }
 }

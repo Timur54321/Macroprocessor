@@ -9,12 +9,17 @@
     <main>
         <div class="main_screen">
             <div class="sect left_section">
-                <button>
-                    Загрузитьав из файла
-                </button>
+                <div style="display: flex; justify-content: space-between; width: 80%; align-items: end; margin-bottom: 1rem;">
+                    <h2>Исходный код</h2>
+                    <button id="file_input_button">
+                        Загрузить из файла
+                    </button>
+
+                </div>
+                <input type="file" id="file_input" accept=".txt,.text,.js,.html,.css,.json,.xml" style="display: none;"/>
                 <textarea name="oijd" id="user_code"></textarea>
                 <div>
-                    <button>
+                    <button id="fullCycle">
                         Полный проход
                     </button>
                     <button id="step">
@@ -23,6 +28,10 @@
                     <button id="cancel">
                         Отмена
                     </button>
+                </div>
+                <div class="currentLineBlock">
+                    <p>Сейчас обрабатывается строка: </p>
+                    <input type="text" disabled class="currentCodeLine" value="" id="great_line">
                 </div>
             </div>
             <div class="sect middle_section">
@@ -38,71 +47,22 @@
                 </div>
                 <h2>Таблица имен макросов</h2>
                 <div class="block_holder bh_2">
-                    <table style="margin-bottom: 5rem;">
+                    <table style="margin-bottom: 5rem;" id="macroNameTable">
                         <tr>
-                            <th class="column_1">Company</th>
-                            <th class="column_2_2">Contact</th>
-                            <th class="column_3_2">Company</th>
-                        </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2_2">value 2</td>
-                            <td class="column_3_2">value 3</td>
-                        </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2_2">value 2</td>
-                            <td class="column_3_2">value 3</td>
-                        </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2_2">value 2</td>
-                            <td class="column_3_2">value 3</td>
-                        </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2_2">value 2</td>
-                            <td class="column_3_2">value 3</td>
-                        </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2_2">value 2</td>
-                            <td class="column_3_2">value 3</td>
-                        </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2_2">value 2</td>
-                            <td class="column_3_2">value 3</td>
+                            <th class="column_1">Имя</th>
+                            <th class="column_2_2">Начало</th>
+                            <th class="column_3_2">Длина</th>
                         </tr>
                     </table> 
                 </div>
-                <h2>Таблица имен макросов</h2>
+                <h2>Таблица переменных</h2>
                 <div class="block_holder bh_3">
-                    <table>
+                    <table id="variablesTable">
                         <tr>
-                            <th class="column_1">Company</th>
-                            <th class="column_2">Contact</th>
+                            <th class="column_1">Имя</th>
+                            <th class="column_2">Значение</th>
                         </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2">value 2</td>
-                        </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2">value 2</td>
-                        </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2">value 2</td>
-                        </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2">value 2</td>
-                        </tr>
-                        <tr>
-                            <td class="column_1">value 1</td>
-                            <td class="column_2">value 2</td>
-                        </tr>
+                        
                     </table> 
                 </div>
             </div>
